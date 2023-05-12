@@ -1,11 +1,34 @@
-import { ImageResponse, NextRequest } from "next/server";
+import { JAPIUser } from "@/lib/types";
+import { ImageResponse, NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: NextRequest) {
-	const { searchParams } = new URL(req.url);
+interface Params {
+	params: {
+		id: string;
+	};
+}
 
-	const avatar = searchParams.get("avatar");
+export async function GET(req: NextRequest, { params }: Params) {
+	const { searchParams } = req.nextUrl;
+
+	if (!params.id)
+		return NextResponse.json({
+			code: 400,
+			context: "missing 'id' in params",
+			message: "bad request",
+		});
+
+	const user = (await (
+		await fetch(`https://japi.rest/discord/v1/user/${params.id}`)
+	).json()) as JAPIUser;
+
+	if (!user.data)
+		return NextResponse.json({
+			code: 400,
+			context: "malformed id",
+			message: "bad request",
+		});
+
 	const background = searchParams.get("bg");
-	const username = searchParams.get("username");
 	const xp = searchParams.get("xp");
 	const requiredXp = searchParams.get("requiredXp");
 
@@ -19,13 +42,13 @@ export async function GET(req: NextRequest) {
 			<div tw="bg-gray-900/90 rounded-xl text-white h-full w-full flex items-center px-10">
 				<div tw="flex items-center gap-4">
 					<img
-						src={avatar as string}
+						src={user.data.avatarURL}
 						tw="rounded-full border-4 border-sky-500 p-2 h-32 w-32"
 						alt=""
 					/>
 					<div tw="flex flex-col space-y-3 ml-5 w-full">
 						<div tw="flex items-center justify-between w-[70%]">
-							<span tw="text-3xl font-bold">{username}</span>
+							<span tw="text-3xl font-bold">{user.data.username}</span>
 							<span tw="text-xl">
 								{xp}/{requiredXp}
 							</span>
